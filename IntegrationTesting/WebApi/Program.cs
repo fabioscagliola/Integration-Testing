@@ -17,9 +17,6 @@ namespace com.fabioscagliola.IntegrationTesting.WebApi
                 optionsAction.UseSqlServer(webApplicationBuilder.Configuration.GetConnectionString("ConnectionString"));
             });
 
-            //new() { Id = 1, FName = "Fabio", LName = "Scagliola" },
-            //new() { Id = 2, FName = "Laura", LName = "Bernasconi" },
-
             WebApplication webApplication = webApplicationBuilder.Build();
 
             if (webApplication.Environment.IsDevelopment())
