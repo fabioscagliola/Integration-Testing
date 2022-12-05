@@ -60,5 +60,14 @@ Add-Migration Migration001 -Project WebApiTest
 Update-Database
 ```
 
-The tests included in the **** class, based on the **** class (where the **WebApiTestWebApplicationFactory** class is instantiated and disposed of), ensure that the **Person** controller allows to create, read, update, and delete people records.
+The tests included in the **PersonControllerTest** class, based on the **BaseTest** class (where the **WebApiTestWebApplicationFactory** class is instantiated and disposed of), ensure that the **Person** controller allows to create, read, update, and delete people records.
+
+## Setup
+
+The following steps must be completed before running the ASP.NET Core web API or the integration tests:
+
+ 1. Create a user on Microsoft SQL Server named "WebApi" using the "XXXX" password and assign the **dbcreator** server-level role to the user.
+ 1. Create the `C:\TEMP\WebApi` folder on the filesystem where the SQLite database will be stored.
+
+The above username, password, and path (as well as the name or IP address of the Microsoft SQL Server computer and additional settings) can be customized by editing the `appsettings.json` files of the two projects.
 
