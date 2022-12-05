@@ -17,7 +17,7 @@ namespace com.fabioscagliola.IntegrationTesting.WebApiTest
 
                 configureServices.AddDbContext<WebApiDbContext>(optionsAction =>
                 {
-                    SqliteConnection sqliteConnection = new("DataSource=:memory:");
+                    SqliteConnection sqliteConnection = new(Settings.Instance.SqliteConnectionString);
                     sqliteConnection.Open();
                     optionsAction.UseSqlite(sqliteConnection);
                 });
