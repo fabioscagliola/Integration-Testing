@@ -1,6 +1,7 @@
+
 # ASP.NET Core Integration Testing
 
-The purpose of this solution is to implement integration testing of an ASP.NET Core web API that uses EF Core and Migrations with Microsoft SQL Server, mocking the database context in order to use SQLite.
+The purpose of this solution is to implement integration testing of an ASP.NET Core web API that uses EF Core and Migrations with Microsoft SQL Server, mocking the database context in order to use an [SQLite in-memory database](https://sqlite.org/inmemorydb.html).
 
 The solution consists of two projects: **WebApi** and **WebApiTest**:
 
@@ -21,12 +22,20 @@ It references the following NuGet packages:
 
 It includes a database context called **WebApiDbContext** containing one entity only, **Person**, including the **Id**, **FName**, and **LName** attributes/fields/properties, whatever you prefer calling them.
 
-The Migration that takes care of the database in Microsoft SQL Server was created and executed by issuing the following commands at the Package Manager Console:
+The Migration that takes care of the database in Microsoft SQL Server was created and executed by issuing the following using the Package Manager Console:
 
-```
+```powershell
 Install-Package Microsoft.EntityFrameworkCore.Tools
 Add-Migration Migration001
 Update-Database
+```
+
+Or the following ones using the Power Shell from the **WebApi** project folder:
+
+```powershell
+dotnet tool install -g dotnet-ef
+dotnet-ef migrations add Migration001
+dotnet-ef database update
 ```
 
 I removed the timestamp from the beginning of the name of the file. Migrations are executed in alphabetical order anyway, and I prefer using a suffix rather than a prefix.
@@ -52,12 +61,20 @@ It also references the **WebApi** project, of course.
 
 Integration tests are executed by means of an instance of the **WebApiTestWebApplicationFactory** class, which replaces the Microsoft SQL Server with SQLite at run-time.
 
-The **DesignTimeDbContextFactory** class is responsible for replacing the database at design-time as well, in order to be able to create and execute the Migration that takes care of the database in SQLite from the Package Manager Console, using the following commands:
+The **DesignTimeDbContextFactory** class is instead responsible for replacing the database at design-time: it allows to create and execute the Migration that takes care of the database in SQLite by issuing the following using the Package Manager Console:
 
-```
+```powershell
 Install-Package Microsoft.EntityFrameworkCore.Tools
 Add-Migration Migration001 -Project WebApiTest
 Update-Database
+```
+
+Or the following ones using the Power Shell from the **WebApiTest** project folder:
+
+```powershell
+dotnet tool install -g dotnet-ef
+dotnet-ef migrations add Migration001
+dotnet-ef database update
 ```
 
 The tests included in the **PersonControllerTest** class, based on the **BaseTest** class (where the **WebApiTestWebApplicationFactory** class is instantiated and disposed of), ensure that the **Person** controller allows to create, read, update, and delete people records.

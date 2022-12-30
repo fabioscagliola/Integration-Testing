@@ -10,7 +10,7 @@ namespace com.fabioscagliola.IntegrationTesting.WebApiTest
         {
             DbContextOptionsBuilder dbContextOptionsBuilder = new DbContextOptionsBuilder<WebApiDbContext>();
             dbContextOptionsBuilder.UseSqlite(Settings.Instance.SqliteConnectionString, sqliteOptionsAction => sqliteOptionsAction.MigrationsAssembly("WebApiTest"));
-            return new WebApiDbContext(dbContextOptionsBuilder.Options);
+            return new(dbContextOptionsBuilder.Options);
         }
     }
 }

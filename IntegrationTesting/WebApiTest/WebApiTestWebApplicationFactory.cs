@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using System.Data.Common;
 
 namespace com.fabioscagliola.IntegrationTesting.WebApiTest
 {
@@ -15,12 +16,23 @@ namespace com.fabioscagliola.IntegrationTesting.WebApiTest
             {
                 configureServices.Remove(configureServices.Single(d => d.ServiceType == typeof(DbContextOptions<WebApiDbContext>)));
 
-                configureServices.AddDbContext<WebApiDbContext>(optionsAction =>
+                configureServices.AddSingleton((Func<IServiceProvider, DbConnection>)(implementationFactory =>
                 {
                     SqliteConnection sqliteConnection = new(Settings.Instance.SqliteConnectionString);
                     sqliteConnection.Open();
-                    optionsAction.UseSqlite(sqliteConnection);
+                    return sqliteConnection;
+                }));
+
+                configureServices.AddDbContext<WebApiDbContext>((serviceProvider, dbContextOptionBuilder) =>
+                {
+                    DbConnection dbConnection = serviceProvider.GetRequiredService<DbConnection>();
+                    dbContextOptionBuilder.UseSqlite(dbConnection);
                 });
+
+                ServiceProvider serviceProvider = configureServices.BuildServiceProvider();
+                IServiceScope serviceScope = serviceProvider.CreateScope();
+                WebApiDbContext webApiDbContext = serviceScope.ServiceProvider.GetRequiredService<WebApiDbContext>();
+                webApiDbContext.Database.EnsureCreated();
             });
         }
     }
