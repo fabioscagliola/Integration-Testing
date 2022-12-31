@@ -1,4 +1,6 @@
-﻿namespace com.fabioscagliola.IntegrationTesting.WebApi.Controllers
+﻿#nullable disable
+
+namespace com.fabioscagliola.IntegrationTesting.WebApi.Controllers
 {
     public class PersonCreateData
     {

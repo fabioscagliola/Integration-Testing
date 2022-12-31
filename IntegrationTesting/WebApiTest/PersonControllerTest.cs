@@ -12,6 +12,18 @@ namespace com.fabioscagliola.IntegrationTesting.WebApiTest
         const string LNAME = "Scagliola";
 
         [Test]
+        public async Task Person_Create_WhenFNameOrLNameAreNullOrEmpty_ReturnsBadRequest()
+        {
+            HttpClient httpClient = WebApiTestWebApplicationFactory.CreateClient();
+            PersonCreateData personCreateData = new() { FName = null, LName = "" };
+            HttpResponseMessage httpResponseMessage = await httpClient.PostAsync($"{Settings.Instance.WebApiUrl}/Person/Create", JsonContent.Create(personCreateData));
+            Assert.That(httpResponseMessage.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
+            string fNameOrLNameAreNullOrEmpty = await httpResponseMessage.Content.ReadAsStringAsync();
+            Assert.That(fNameOrLNameAreNullOrEmpty, Is.Not.Null);
+            Assert.That(fNameOrLNameAreNullOrEmpty, Is.EqualTo(PersonController.FNAMEORLNAMEARENULLOREMPTY));
+        }
+
+        [Test]
         public async Task Person_Create_Succeeds()
         {
             Person? person = await CreatePerson(FNAME, LNAME);
@@ -65,15 +77,30 @@ namespace com.fabioscagliola.IntegrationTesting.WebApiTest
         }
 
         [Test]
-        public async Task Person_Update_ReturnsBadRequest()
+        public async Task Person_Update_WhenNotFound_ReturnsBadRequest()
         {
             HttpClient httpClient = WebApiTestWebApplicationFactory.CreateClient();
-            Person expected = new() { Id = 0, FName = "", LName = "" };
+            Person expected = new();
             HttpResponseMessage httpResponseMessage = await httpClient.PostAsync($"{Settings.Instance.WebApiUrl}/Person/Update", JsonContent.Create(expected));
             Assert.That(httpResponseMessage.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
             string notfound = await httpResponseMessage.Content.ReadAsStringAsync();
             Assert.That(notfound, Is.Not.Null);
             Assert.That(notfound, Is.EqualTo(PersonController.NOTFOUND));
+        }
+
+        [Test]
+        public async Task Person_Update_WhenFNameOrLNameAreNullOrEmpty_ReturnsBadRequest()
+        {
+            Person? temp = await CreatePerson(FNAME, LNAME);
+            Assert.That(temp, Is.Not.Null);
+
+            HttpClient httpClient = WebApiTestWebApplicationFactory.CreateClient();
+            Person expected = new() { Id = temp.Id, FName = null, LName = "" };
+            HttpResponseMessage httpResponseMessage = await httpClient.PostAsync($"{Settings.Instance.WebApiUrl}/Person/Update", JsonContent.Create(expected));
+            Assert.That(httpResponseMessage.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
+            string fNameOrLNameAreNullOrEmpty = await httpResponseMessage.Content.ReadAsStringAsync();
+            Assert.That(fNameOrLNameAreNullOrEmpty, Is.Not.Null);
+            Assert.That(fNameOrLNameAreNullOrEmpty, Is.EqualTo(PersonController.FNAMEORLNAMEARENULLOREMPTY));
         }
 
         [Test]

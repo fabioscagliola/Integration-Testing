@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using System.Reflection;
 
 namespace com.fabioscagliola.IntegrationTesting.WebApi
 {
@@ -10,7 +11,11 @@ namespace com.fabioscagliola.IntegrationTesting.WebApi
 
             webApplicationBuilder.Services.AddControllers();
             webApplicationBuilder.Services.AddEndpointsApiExplorer();
-            webApplicationBuilder.Services.AddSwaggerGen();
+            webApplicationBuilder.Services.AddSwaggerGen(setupAction =>
+            {
+                setupAction.EnableAnnotations();
+                setupAction.IncludeXmlComments(Path.Combine(AppContext.BaseDirectory, $"{Assembly.GetExecutingAssembly().GetName().Name}.xml"));
+            });
 
             webApplicationBuilder.Services.AddDbContext<WebApiDbContext>(optionsAction =>
             {

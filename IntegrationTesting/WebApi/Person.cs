@@ -1,4 +1,6 @@
-﻿namespace com.fabioscagliola.IntegrationTesting.WebApi
+﻿#nullable disable
+
+namespace com.fabioscagliola.IntegrationTesting.WebApi
 {
     public class Person
     {

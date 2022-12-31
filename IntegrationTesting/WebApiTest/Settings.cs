@@ -1,10 +1,12 @@
 ﻿using Microsoft.Extensions.Configuration;
 
+#nullable disable
+
 namespace com.fabioscagliola.IntegrationTesting.WebApiTest
 {
     class Settings
     {
-        static Settings? instance;
+        static Settings instance;
 
         public static Settings Instance
         {
