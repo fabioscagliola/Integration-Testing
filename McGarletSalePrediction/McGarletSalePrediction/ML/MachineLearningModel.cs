@@ -9,12 +9,13 @@ namespace com.fabioscagliola.IntegrationTesting.McGarletSalePrediction.ML
     public class MachineLearningModel
     {
         readonly MLContext ml;
-
+        readonly string dataPath;
         readonly string machineLearningModelPath = @"C:\Data\thesoftwaretailors\McGarlet-Sale-Prediction.NET\McGarletSalePrediction\McGarletSalePrediction\ML\MachineLearningModel.zip";  // TODO: Hardcoded 
 
-        public MachineLearningModel()
+        public MachineLearningModel(string dataPath)
         {
             ml = new MLContext();
+            this.dataPath = dataPath;
         }
 
         public IDataView CreateDataView(int prodCode)
@@ -24,31 +25,44 @@ namespace com.fabioscagliola.IntegrationTesting.McGarletSalePrediction.ML
                 hasHeader: true,
                 trimWhitespace: true);
 
-            IDataView temp = textLoader.Load(@"C:\Data\thesoftwaretailors\McGarlet-Sale-Prediction.NET\Data\Data.csv");  // TODO: Hardcoded 
+            IDataView dataView = textLoader.Load(dataPath);
 
-            return ml.Data.FilterByCustomPredicate<ActualData>(temp, actualData => actualData.ProdCode == prodCode);
+            return ml.Data.FilterByCustomPredicate<ActualData>(dataView, actualData => actualData.ProdCode == prodCode);
         }
 
-        public TimeSeriesPredictionEngine<ActualData, ForecastedData> CreatePredictionEngine(IDataView dataView)
+        public TimeSeriesPredictionEngine<ActualData, ForecastedData> CreatePredictionEngine(IDataView dataView, bool trainModel = false)
         {
-            SsaForecastingEstimator forecastingEstimator = ml.Forecasting.ForecastBySsa(
-                outputColumnName: "ForecastedQuantity",
-                inputColumnName: "Quantity",
-                windowSize: 2,
-                seriesLength: 10,
-                trainSize: 2067559,  // TODO: Hardcoded 
-                horizon: 10,
-                confidenceLowerBoundColumn: "LowerBoundQuantity",
-                confidenceUpperBoundColumn: "UpperBoundQuantity",
-                confidenceLevel: .95f);
+            ITransformer machineLearningModel;
 
-            ITransformer forecastingTransformer = forecastingEstimator.Fit(dataView);
+            if (trainModel)
+            {
+                IEstimator<ITransformer> forecastingEstimator = ml.Forecasting.ForecastBySsa(
+                    outputColumnName: nameof(ForecastedData.ForecastedQuantity),
+                    inputColumnName: nameof(ActualData.Quantity),
+                    windowSize: 2,
+                    seriesLength: 10,
+                    trainSize: File.ReadLines(dataPath).Count() - 1,
+                    horizon: 10,
+                    confidenceLowerBoundColumn: nameof(ForecastedData.LowerBoundQuantity),
+                    confidenceUpperBoundColumn: nameof(ForecastedData.UpperBoundQuantity),
+                    confidenceLevel: .95f);
 
-            //Evaluate(forecastingTransformer, dataView);
+                IEstimator<ITransformer> pipeline = ml.Transforms  // Not in use 
+                    .Concatenate("Features", nameof(ActualData.Date), nameof(ActualData.ProdCode))
+                    .Append(forecastingEstimator)
+                    .AppendCacheCheckpoint(ml);
 
-            TimeSeriesPredictionEngine<ActualData, ForecastedData> predictionEngine = forecastingTransformer.CreateTimeSeriesEngine<ActualData, ForecastedData>(ml);
+                machineLearningModel = forecastingEstimator.Fit(dataView);  // ml.Data.TrainTestSplit(dataView, .3).TrainSet 
 
-            predictionEngine.CheckPoint(ml, machineLearningModelPath);
+                //Evaluate(forecastingTransformer, dataView);
+            }
+            else
+                machineLearningModel = ml.Model.Load(machineLearningModelPath, out _);
+
+            TimeSeriesPredictionEngine<ActualData, ForecastedData> predictionEngine = machineLearningModel.CreateTimeSeriesEngine<ActualData, ForecastedData>(ml);
+
+            if (trainModel)
+                predictionEngine.CheckPoint(ml, machineLearningModelPath);
 
             return predictionEngine;
         }

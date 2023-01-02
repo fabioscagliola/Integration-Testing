@@ -11,7 +11,7 @@ The solution consists of two projects: **McGarletSalePrediction** and **McGarlet
 
 ## Remarks
 
-The machine learning model is not yet trained.
+The machine learning model is not yet properly trained.
 
 The database is not used: forecasted sales are returned by a web API method.
 

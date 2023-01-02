@@ -21,9 +21,9 @@ namespace com.fabioscagliola.IntegrationTesting.McGarletSalePrediction.Controlle
         {
             try
             {
-                MachineLearningModel machineLearningModel = new();
+                MachineLearningModel machineLearningModel = new(@"C:\Data\thesoftwaretailors\McGarlet-Sale-Prediction.NET\Data\Data.csv");  // TODO: Hardcoded 
                 IDataView dataView = machineLearningModel.CreateDataView(data.ProdCode);
-                TimeSeriesPredictionEngine<ActualData, ForecastedData> predictionEngine = machineLearningModel.CreatePredictionEngine(dataView);
+                TimeSeriesPredictionEngine<ActualData, ForecastedData> predictionEngine = machineLearningModel.CreatePredictionEngine(dataView, trainModel: true);  // TODO: Train model 
                 IEnumerable<ForecastedSale> forecastedSaleList = machineLearningModel.Forecast(predictionEngine, dataView, data.Days);
                 return base.Ok(forecastedSaleList);
             }
