@@ -63,8 +63,8 @@ namespace com.fabioscagliola.IntegrationTesting.McGarletSalePrediction.ML
 
             TimeSeriesPredictionEngine<ActualData, ForecastedData> predictionEngine = machineLearningModel.CreateTimeSeriesEngine<ActualData, ForecastedData>(ml);
 
-            if (trainModel)
-                predictionEngine.CheckPoint(ml, machineLearningModelPath);
+            //if (trainModel)
+            //    predictionEngine.CheckPoint(ml, machineLearningModelPath);
 
             return predictionEngine;
         }

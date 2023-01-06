@@ -11,8 +11,15 @@ namespace com.fabioscagliola.IntegrationTesting.McGarletSalePrediction.Controlle
     [Route("[controller]")]
     public class SalePredictionController : ControllerBase
     {
+        readonly IWebHostEnvironment webHostEnvironment;
+
+        public SalePredictionController(IWebHostEnvironment webHostEnvironment)
+        {
+            this.webHostEnvironment = webHostEnvironment;
+        }
+
         /// <summary>
-        /// Predicts the sale of a product.
+        /// Predicts the sales of a product over a given number of days.
         /// </summary>
         [HttpPost]
         [Route("[action]")]
@@ -31,7 +38,7 @@ namespace com.fabioscagliola.IntegrationTesting.McGarletSalePrediction.Controlle
         }
 
         /// <summary>
-        /// Predicts the sale of a product.
+        /// Predicts the sales of a product over a given number of days and returns the result as a comma-separated values file.
         /// </summary>
         [HttpPost]
         [Route("[action]")]
@@ -41,7 +48,7 @@ namespace com.fabioscagliola.IntegrationTesting.McGarletSalePrediction.Controlle
         {
             try
             {
-                StringBuilder stringBuilder= new();
+                StringBuilder stringBuilder = new();
                 stringBuilder.AppendLine("Date;ProdCode;ProdName;Quantity");
                 foreach (ForecastedSale forecastedSale in DoForecastSaleList(data))
                     stringBuilder.AppendLine($"{forecastedSale.Date:yyyy-MM-dd};{forecastedSale.ProdCode};{forecastedSale.ProdName};{forecastedSale.ForecastedQuantity}");
@@ -53,9 +60,9 @@ namespace com.fabioscagliola.IntegrationTesting.McGarletSalePrediction.Controlle
             }
         }
 
-        static IEnumerable<ForecastedSale> DoForecastSaleList(PredictSalesData data)
+        IEnumerable<ForecastedSale> DoForecastSaleList(PredictSalesData data)
         {
-            MachineLearningModel machineLearningModel = new(@"C:\Data\thesoftwaretailors\McGarlet-Sale-Prediction.NET\Data\Data.csv");  // TODO: Hardcoded 
+            MachineLearningModel machineLearningModel = new(Path.Combine(webHostEnvironment.ContentRootPath, "Data", "Data.csv"));  // TODO: Protect data  
             IDataView dataView = machineLearningModel.CreateDataView(data.ProdCode);
             TimeSeriesPredictionEngine<ActualData, ForecastedData> predictionEngine = machineLearningModel.CreatePredictionEngine(dataView, trainModel: true);  // TODO: Train model 
             return machineLearningModel.Forecast(predictionEngine, dataView, data.Days);
