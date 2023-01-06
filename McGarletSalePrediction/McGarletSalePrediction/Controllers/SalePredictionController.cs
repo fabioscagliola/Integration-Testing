@@ -44,7 +44,7 @@ namespace com.fabioscagliola.IntegrationTesting.McGarletSalePrediction.Controlle
                 StringBuilder stringBuilder= new();
                 stringBuilder.AppendLine("Date;ProdCode;ProdName;Quantity");
                 foreach (ForecastedSale forecastedSale in DoForecastSaleList(data))
-                    stringBuilder.AppendLine($"{forecastedSale.Date:yyyy-MM-dd};{forecastedSale.ProdCode};{forecastedSale.ProdName};{forecastedSale.Quantity}");
+                    stringBuilder.AppendLine($"{forecastedSale.Date:yyyy-MM-dd};{forecastedSale.ProdCode};{forecastedSale.ProdName};{forecastedSale.ForecastedQuantity}");
                 return base.Ok(stringBuilder.ToString());
             }
             catch (Exception e)
