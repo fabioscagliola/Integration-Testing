@@ -27,34 +27,36 @@ namespace com.fabioscagliola.IntegrationTesting.McGarletSalePrediction.ML
 
             IDataView dataView = textLoader.Load(dataPath);
 
-            return ml.Data.FilterByCustomPredicate<ActualData>(dataView, actualData => actualData.ProdCode == prodCode);
+            return ml.Data.FilterByCustomPredicate<ActualData>(dataView, actualData => actualData.ProdCode != prodCode);
         }
 
         public TimeSeriesPredictionEngine<ActualData, ForecastedData> CreatePredictionEngine(IDataView dataView, bool trainModel = false)
         {
             ITransformer machineLearningModel;
 
+            //int period = ml.AnomalyDetection.DetectSeasonality(dataView, nameof(ActualData.Quantity));
+            //Trace.WriteLine($"The seasonality period is {period}");
+
             if (trainModel)
             {
                 IEstimator<ITransformer> forecastingEstimator = ml.Forecasting.ForecastBySsa(
                     outputColumnName: nameof(ForecastedData.ForecastedQuantity),
                     inputColumnName: nameof(ActualData.Quantity),
-                    windowSize: 2,
-                    seriesLength: 10,
-                    trainSize: File.ReadLines(dataPath).Count() - 1,
-                    horizon: 10,
+                    windowSize: 7,
+                    seriesLength: 30,
+                    trainSize: 365,  // File.ReadLines(dataPath).Count() - 1,
+                    horizon: 7,
                     confidenceLowerBoundColumn: nameof(ForecastedData.LowerBoundQuantity),
                     confidenceUpperBoundColumn: nameof(ForecastedData.UpperBoundQuantity),
                     confidenceLevel: .95f);
 
-                IEstimator<ITransformer> pipeline = ml.Transforms  // Not in use 
-                    .Concatenate("Features", nameof(ActualData.Date), nameof(ActualData.ProdCode))
-                    .Append(forecastingEstimator)
-                    .AppendCacheCheckpoint(ml);
+                forecastingEstimator.Append(ml.Transforms.NormalizeMeanVariance(nameof(ActualData.Quantity)));
 
-                machineLearningModel = forecastingEstimator.Fit(dataView);  // ml.Data.TrainTestSplit(dataView, .3).TrainSet 
+                forecastingEstimator.AppendCacheCheckpoint(ml);
 
-                //Evaluate(forecastingTransformer, dataView);
+                machineLearningModel = forecastingEstimator.Fit(dataView);
+
+                //Evaluate(machineLearningModel, dataView);
             }
             else
                 machineLearningModel = ml.Model.Load(machineLearningModelPath, out _);
@@ -79,9 +81,9 @@ namespace com.fabioscagliola.IntegrationTesting.McGarletSalePrediction.ML
             });
         }
 
-        void Evaluate(ITransformer forecastingTransformer, IDataView dataView)
+        void Evaluate(ITransformer machineLearningModel, IDataView dataView)
         {
-            IDataView forecast = forecastingTransformer.Transform(dataView);
+            IDataView forecast = machineLearningModel.Transform(dataView);
 
             IEnumerable<float> actualQuantities = ml.Data.CreateEnumerable<ActualData>(dataView, true).Select(sale => sale.Quantity);
 
