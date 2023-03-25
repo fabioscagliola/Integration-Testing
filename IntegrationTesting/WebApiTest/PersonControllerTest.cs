@@ -1,5 +1,6 @@
 ﻿using com.fabioscagliola.IntegrationTesting.WebApi;
 using com.fabioscagliola.IntegrationTesting.WebApi.Controllers;
+using FluentAssertions;
 using NUnit.Framework;
 using System.Net;
 using System.Net.Http.Json;
@@ -17,23 +18,20 @@ public class PersonControllerTest : BaseTest
         HttpClient httpClient = WebApiTestWebApplicationFactory.CreateClient();
         PersonCreateData personCreateData = new() { FName = null, LName = "" };
         HttpResponseMessage httpResponseMessage = await httpClient.PostAsync($"{Settings.Instance.WebApiUrl}/Person/Create", JsonContent.Create(personCreateData));
-        Assert.That(httpResponseMessage.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
+        httpResponseMessage.StatusCode.Should().Be(HttpStatusCode.BadRequest);
         string fNameOrLNameAreNullOrEmpty = await httpResponseMessage.Content.ReadAsStringAsync();
-        Assert.That(fNameOrLNameAreNullOrEmpty, Is.Not.Null);
-        Assert.That(fNameOrLNameAreNullOrEmpty, Is.EqualTo(PersonController.FNAMEORLNAMEARENULLOREMPTY));
+        fNameOrLNameAreNullOrEmpty.Should().NotBeNull();
+        fNameOrLNameAreNullOrEmpty.Should().Be(PersonController.FNAMEORLNAMEARENULLOREMPTY);
     }
 
     [Test]
     public async Task Person_Create_Succeeds()
     {
         Person? person = await CreatePerson(FNAME, LNAME);
-        Assert.That(person, Is.Not.Null);
-        Assert.Multiple(() =>
-        {
-            Assert.That(person.Id, Is.Not.Zero);
-            Assert.That(person.FName, Is.EqualTo(FNAME));
-            Assert.That(person.LName, Is.EqualTo(LNAME));
-        });
+        person.Should().NotBeNull();
+        person.Id.Should().NotBe(0);
+        person.FName.Should().Be(FNAME);
+        person.LName.Should().Be(LNAME);
     }
 
     [Test]
@@ -41,17 +39,17 @@ public class PersonControllerTest : BaseTest
     {
         HttpClient httpClient = WebApiTestWebApplicationFactory.CreateClient();
         HttpResponseMessage httpResponseMessage = await httpClient.GetAsync($"{Settings.Instance.WebApiUrl}/Person/Read/0");
-        Assert.That(httpResponseMessage.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
+        httpResponseMessage.StatusCode.Should().Be(HttpStatusCode.BadRequest);
         string notfound = await httpResponseMessage.Content.ReadAsStringAsync();
-        Assert.That(notfound, Is.Not.Null);
-        Assert.That(notfound, Is.EqualTo(PersonController.NOTFOUND));
+        notfound.Should().NotBeNull();
+        notfound.Should().Be(PersonController.NOTFOUND);
     }
 
     [Test]
     public async Task Person_Read_Succeeds()
     {
         Person? expected = await CreatePerson(FNAME, LNAME);
-        Assert.That(expected, Is.Not.Null);
+        expected.Should().NotBeNull();
 
         HttpClient httpClient = WebApiTestWebApplicationFactory.CreateClient();
         HttpResponseMessage httpResponseMessage = await httpClient.GetAsync($"{Settings.Instance.WebApiUrl}/Person/Read/{expected.Id}");
@@ -64,14 +62,14 @@ public class PersonControllerTest : BaseTest
     public async Task Person_ReadList_Succeeds()
     {
         Person? expected = await CreatePerson(FNAME, LNAME);
-        Assert.That(expected, Is.Not.Null);
+        expected.Should().NotBeNull();
 
         HttpClient httpClient = WebApiTestWebApplicationFactory.CreateClient();
         HttpResponseMessage httpResponseMessage = await httpClient.GetAsync($"{Settings.Instance.WebApiUrl}/Person/ReadList");
         httpResponseMessage.EnsureSuccessStatusCode();
         List<Person>? people = await httpResponseMessage.Content.ReadFromJsonAsync(typeof(List<Person>)) as List<Person>;
-        Assert.That(people, Is.Not.Null);
-        Assert.That(people, Is.Not.Empty);
+        people.Should().NotBeNull();
+        people.Should().NotBeEmpty();
         Person? actual = people.SingleOrDefault(x => x.Id == expected.Id);
         MakeAssertions(expected, actual);
     }
@@ -82,32 +80,32 @@ public class PersonControllerTest : BaseTest
         HttpClient httpClient = WebApiTestWebApplicationFactory.CreateClient();
         Person expected = new();
         HttpResponseMessage httpResponseMessage = await httpClient.PostAsync($"{Settings.Instance.WebApiUrl}/Person/Update", JsonContent.Create(expected));
-        Assert.That(httpResponseMessage.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
+        httpResponseMessage.StatusCode.Should().Be(HttpStatusCode.BadRequest);
         string notfound = await httpResponseMessage.Content.ReadAsStringAsync();
-        Assert.That(notfound, Is.Not.Null);
-        Assert.That(notfound, Is.EqualTo(PersonController.NOTFOUND));
+        notfound.Should().NotBeNull();
+        notfound.Should().Be(PersonController.NOTFOUND);
     }
 
     [Test]
     public async Task Person_Update_WhenFNameOrLNameAreNullOrEmpty_ReturnsBadRequest()
     {
         Person? temp = await CreatePerson(FNAME, LNAME);
-        Assert.That(temp, Is.Not.Null);
+        temp.Should().NotBeNull();
 
         HttpClient httpClient = WebApiTestWebApplicationFactory.CreateClient();
         Person expected = new() { Id = temp.Id, FName = null, LName = "" };
         HttpResponseMessage httpResponseMessage = await httpClient.PostAsync($"{Settings.Instance.WebApiUrl}/Person/Update", JsonContent.Create(expected));
-        Assert.That(httpResponseMessage.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
+        httpResponseMessage.StatusCode.Should().Be(HttpStatusCode.BadRequest);
         string fNameOrLNameAreNullOrEmpty = await httpResponseMessage.Content.ReadAsStringAsync();
-        Assert.That(fNameOrLNameAreNullOrEmpty, Is.Not.Null);
-        Assert.That(fNameOrLNameAreNullOrEmpty, Is.EqualTo(PersonController.FNAMEORLNAMEARENULLOREMPTY));
+        fNameOrLNameAreNullOrEmpty.Should().NotBeNull();
+        fNameOrLNameAreNullOrEmpty.Should().Be(PersonController.FNAMEORLNAMEARENULLOREMPTY);
     }
 
     [Test]
     public async Task Person_Update_Succeeds()
     {
         Person? temp = await CreatePerson(FNAME, LNAME);
-        Assert.That(temp, Is.Not.Null);
+        temp.Should().NotBeNull();
 
         HttpClient httpClient = WebApiTestWebApplicationFactory.CreateClient();
         Person expected = new() { Id = temp.Id, FName = "Laura", LName = "Bernasconi" };
@@ -122,10 +120,10 @@ public class PersonControllerTest : BaseTest
     {
         HttpClient httpClient = WebApiTestWebApplicationFactory.CreateClient();
         HttpResponseMessage httpResponseMessage = await httpClient.DeleteAsync($"{Settings.Instance.WebApiUrl}/Person/Delete/0");
-        Assert.That(httpResponseMessage.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
+        httpResponseMessage.StatusCode.Should().Be(HttpStatusCode.BadRequest);
         string notfound = await httpResponseMessage.Content.ReadAsStringAsync();
-        Assert.That(notfound, Is.Not.Null);
-        Assert.That(notfound, Is.EqualTo(PersonController.NOTFOUND));
+        notfound.Should().NotBeNull();
+        notfound.Should().Be(PersonController.NOTFOUND);
     }
 
     [Test]
@@ -136,17 +134,17 @@ public class PersonControllerTest : BaseTest
         HttpClient httpClient = WebApiTestWebApplicationFactory.CreateClient();
 
         {
-            Assert.That(expected, Is.Not.Null);
+            expected.Should().NotBeNull();
             HttpResponseMessage httpResponseMessage = await httpClient.DeleteAsync($"{Settings.Instance.WebApiUrl}/Person/Delete/{expected.Id}");
             httpResponseMessage.EnsureSuccessStatusCode();
         }
 
         {
             HttpResponseMessage httpResponseMessage = await httpClient.GetAsync($"{Settings.Instance.WebApiUrl}/Person/Read/{expected.Id}");
-            Assert.That(httpResponseMessage.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
+            httpResponseMessage.StatusCode.Should().Be(HttpStatusCode.BadRequest);
             string notfound = await httpResponseMessage.Content.ReadAsStringAsync();
-            Assert.That(notfound, Is.Not.Null);
-            Assert.That(notfound, Is.EqualTo(PersonController.NOTFOUND));
+            notfound.Should().NotBeNull();
+            notfound.Should().Be(PersonController.NOTFOUND);
         }
     }
 
@@ -161,10 +159,10 @@ public class PersonControllerTest : BaseTest
 
     static void MakeAssertions(Person? expected, Person? actual)
     {
-        Assert.That(expected, Is.Not.Null);
-        Assert.That(actual, Is.Not.Null);
-        Assert.That(actual.Id, Is.EqualTo(expected.Id));
-        Assert.That(actual.FName, Is.EqualTo(expected.FName));
-        Assert.That(actual.LName, Is.EqualTo(expected.LName));
+        expected.Should().NotBeNull();
+        actual.Should().NotBeNull();
+        actual.Id.Should().Be(expected.Id);
+        actual.FName.Should().Be(expected.FName);
+        actual.LName.Should().Be(expected.LName);
     }
 }
