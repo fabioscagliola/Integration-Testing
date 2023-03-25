@@ -1,11 +1,10 @@
 ﻿#nullable disable
 
-namespace com.fabioscagliola.IntegrationTesting.WebApi.Controllers
-{
-    public class PersonCreateData
-    {
-        public string FName { get; set; }
+namespace com.fabioscagliola.IntegrationTesting.WebApi.Controllers;
 
-        public string LName { get; set; }
-    }
+public class PersonCreateData
+{
+    public string FName { get; set; }
+
+    public string LName { get; set; }
 }

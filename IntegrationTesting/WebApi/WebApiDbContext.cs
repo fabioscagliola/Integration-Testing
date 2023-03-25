@@ -1,16 +1,15 @@
 ﻿using Microsoft.EntityFrameworkCore;
 
-namespace com.fabioscagliola.IntegrationTesting.WebApi
+namespace com.fabioscagliola.IntegrationTesting.WebApi;
+
+public class WebApiDbContext : DbContext
 {
-    public class WebApiDbContext : DbContext
+    public WebApiDbContext(DbContextOptions options) : base(options) { }
+
+    public DbSet<Person> People { get; set; }
+
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        public WebApiDbContext(DbContextOptions options) : base(options) { }
-
-        public DbSet<Person> People { get; set; }
-
-        protected override void OnModelCreating(ModelBuilder modelBuilder)
-        {
-            modelBuilder.Entity<Person>().ToTable(nameof(Person));
-        }
+        modelBuilder.Entity<Person>().ToTable(nameof(Person));
     }
 }

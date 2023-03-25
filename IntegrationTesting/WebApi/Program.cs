@@ -1,42 +1,43 @@
 using Microsoft.EntityFrameworkCore;
 using System.Reflection;
 
-namespace com.fabioscagliola.IntegrationTesting.WebApi
+namespace com.fabioscagliola.IntegrationTesting.WebApi;
+
+public class Program
 {
-    public class Program
+    static void Main(string[] args)
     {
-        static void Main(string[] args)
+        WebApplicationBuilder webApplicationBuilder = WebApplication.CreateBuilder(args);
+
+        webApplicationBuilder.Services.AddControllers();
+
+        webApplicationBuilder.Services.AddEndpointsApiExplorer();
+
+        webApplicationBuilder.Services.AddSwaggerGen(setupAction =>
         {
-            WebApplicationBuilder webApplicationBuilder = WebApplication.CreateBuilder(args);
+            setupAction.EnableAnnotations();
+            setupAction.IncludeXmlComments(Path.Combine(AppContext.BaseDirectory, $"{Assembly.GetExecutingAssembly().GetName().Name}.xml"));
+        });
 
-            webApplicationBuilder.Services.AddControllers();
-            webApplicationBuilder.Services.AddEndpointsApiExplorer();
-            webApplicationBuilder.Services.AddSwaggerGen(setupAction =>
-            {
-                setupAction.EnableAnnotations();
-                setupAction.IncludeXmlComments(Path.Combine(AppContext.BaseDirectory, $"{Assembly.GetExecutingAssembly().GetName().Name}.xml"));
-            });
+        webApplicationBuilder.Services.AddDbContext<WebApiDbContext>(optionsAction =>
+        {
+            optionsAction.UseSqlServer(webApplicationBuilder.Configuration.GetConnectionString("ConnectionString"));
+        });
 
-            webApplicationBuilder.Services.AddDbContext<WebApiDbContext>(optionsAction =>
-            {
-                optionsAction.UseSqlServer(webApplicationBuilder.Configuration.GetConnectionString("ConnectionString"));
-            });
+        WebApplication webApplication = webApplicationBuilder.Build();
 
-            WebApplication webApplication = webApplicationBuilder.Build();
-
-            if (webApplication.Environment.IsDevelopment())
-            {
-                webApplication.UseSwagger();
-                webApplication.UseSwaggerUI();
-            }
-
-            webApplication.UseAuthorization();
-
-            webApplication.UseHttpsRedirection();
-
-            webApplication.MapControllers();
-
-            webApplication.Run();
+        if (webApplication.Environment.IsDevelopment())
+        {
+            webApplication.UseSwagger();
+            webApplication.UseSwaggerUI();
         }
+
+        webApplication.UseAuthorization();
+
+        webApplication.UseHttpsRedirection();
+
+        webApplication.MapControllers();
+
+        webApplication.Run();
     }
 }

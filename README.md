@@ -36,18 +36,17 @@ Here is the code of the database context.
 ```csharp
 using Microsoft.EntityFrameworkCore;
 
-namespace com.fabioscagliola.IntegrationTesting.WebApi
+namespace com.fabioscagliola.IntegrationTesting.WebApi;
+
+public class WebApiDbContext : DbContext
 {
-    public class WebApiDbContext : DbContext
+    public WebApiDbContext(DbContextOptions options) : base(options) { }
+
+    public DbSet<Person> People { get; set; }
+
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        public WebApiDbContext(DbContextOptions options) : base(options) { }
-
-        public DbSet<Person> People { get; set; }
-
-        protected override void OnModelCreating(ModelBuilder modelBuilder)
-        {
-            modelBuilder.Entity<Person>().ToTable(nameof(Person));
-        }
+        modelBuilder.Entity<Person>().ToTable(nameof(Person));
     }
 }
 ```
@@ -57,16 +56,15 @@ And here is the code of the entity.
 ```csharp
 #nullable disable
 
-namespace com.fabioscagliola.IntegrationTesting.WebApi
+namespace com.fabioscagliola.IntegrationTesting.WebApi;
+
+public class Person
 {
-    public class Person
-    {
-        public int Id { get; set; }
+    public int Id { get; set; }
 
-        public string FName { get; set; }
+    public string FName { get; set; }
 
-        public string LName { get; set; }
-    }
+    public string LName { get; set; }
 }
 ```
 
@@ -137,35 +135,34 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using System.Data.Common;
 
-namespace com.fabioscagliola.IntegrationTesting.WebApiTest
+namespace com.fabioscagliola.IntegrationTesting.WebApiTest;
+
+public class WebApiTestWebApplicationFactory<T> : WebApplicationFactory<T> where T : class
 {
-    public class WebApiTestWebApplicationFactory<T> : WebApplicationFactory<T> where T : class
+    protected override void ConfigureWebHost(IWebHostBuilder webHostBuilder)
     {
-        protected override void ConfigureWebHost(IWebHostBuilder webHostBuilder)
+        webHostBuilder.ConfigureServices(configureServices =>
         {
-            webHostBuilder.ConfigureServices(configureServices =>
+            configureServices.Remove(configureServices.Single(d => d.ServiceType == typeof(DbContextOptions<WebApiDbContext>)));
+
+            configureServices.AddSingleton((Func<IServiceProvider, DbConnection>)(implementationFactory =>
             {
-                configureServices.Remove(configureServices.Single(d => d.ServiceType == typeof(DbContextOptions<WebApiDbContext>)));
+                SqliteConnection sqliteConnection = new(Settings.Instance.SqliteConnectionString);
+                sqliteConnection.Open();
+                return sqliteConnection;
+            }));
 
-                configureServices.AddSingleton((Func<IServiceProvider, DbConnection>)(implementationFactory =>
-                {
-                    SqliteConnection sqliteConnection = new(Settings.Instance.SqliteConnectionString);
-                    sqliteConnection.Open();
-                    return sqliteConnection;
-                }));
-
-                configureServices.AddDbContext<WebApiDbContext>((serviceProvider, dbContextOptionBuilder) =>
-                {
-                    DbConnection dbConnection = serviceProvider.GetRequiredService<DbConnection>();
-                    dbContextOptionBuilder.UseSqlite(dbConnection);
-                });
-
-                ServiceProvider serviceProvider = configureServices.BuildServiceProvider();
-                IServiceScope serviceScope = serviceProvider.CreateScope();
-                WebApiDbContext webApiDbContext = serviceScope.ServiceProvider.GetRequiredService<WebApiDbContext>();
-                webApiDbContext.Database.EnsureCreated();
+            configureServices.AddDbContext<WebApiDbContext>((serviceProvider, dbContextOptionBuilder) =>
+            {
+                DbConnection dbConnection = serviceProvider.GetRequiredService<DbConnection>();
+                dbContextOptionBuilder.UseSqlite(dbConnection);
             });
-        }
+
+            ServiceProvider serviceProvider = configureServices.BuildServiceProvider();
+            IServiceScope serviceScope = serviceProvider.CreateScope();
+            WebApiDbContext webApiDbContext = serviceScope.ServiceProvider.GetRequiredService<WebApiDbContext>();
+            webApiDbContext.Database.EnsureCreated();
+        });
     }
 }
 ```
@@ -177,16 +174,15 @@ using com.fabioscagliola.IntegrationTesting.WebApi;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Design;
 
-namespace com.fabioscagliola.IntegrationTesting.WebApiTest
+namespace com.fabioscagliola.IntegrationTesting.WebApiTest;
+
+public class DesignTimeDbContextFactory : IDesignTimeDbContextFactory<WebApiDbContext>
 {
-    public class DesignTimeDbContextFactory : IDesignTimeDbContextFactory<WebApiDbContext>
+    public WebApiDbContext CreateDbContext(string[] args)
     {
-        public WebApiDbContext CreateDbContext(string[] args)
-        {
-            DbContextOptionsBuilder dbContextOptionsBuilder = new DbContextOptionsBuilder<WebApiDbContext>();
-            dbContextOptionsBuilder.UseSqlite(Settings.Instance.SqliteConnectionString, sqliteOptionsAction => sqliteOptionsAction.MigrationsAssembly("WebApiTest"));
-            return new(dbContextOptionsBuilder.Options);
-        }
+        DbContextOptionsBuilder dbContextOptionsBuilder = new DbContextOptionsBuilder<WebApiDbContext>();
+        dbContextOptionsBuilder.UseSqlite(Settings.Instance.SqliteConnectionString, sqliteOptionsAction => sqliteOptionsAction.MigrationsAssembly("WebApiTest"));
+        return new(dbContextOptionsBuilder.Options);
     }
 }
 ```
@@ -200,32 +196,31 @@ using Microsoft.Extensions.Configuration;
 
 #nullable disable
 
-namespace com.fabioscagliola.IntegrationTesting.WebApiTest
+namespace com.fabioscagliola.IntegrationTesting.WebApiTest;
+
+class Settings
 {
-    class Settings
+    static Settings instance;
+
+    public static Settings Instance
     {
-        static Settings instance;
-
-        public static Settings Instance
+        get
         {
-            get
+            if (instance == null)
             {
+                IConfiguration configuration = new ConfigurationBuilder().AddJsonFile("appsettings.json").AddEnvironmentVariables().Build();
+                instance = configuration.GetSection(nameof(Settings)).Get<Settings>();
                 if (instance == null)
-                {
-                    IConfiguration configuration = new ConfigurationBuilder().AddJsonFile("appsettings.json").AddEnvironmentVariables().Build();
-                    instance = configuration.GetSection("Settings").Get<Settings>();
-                    if (instance == null)
-                        throw new ApplicationException("Something went wrong while initializing the settings.");
-                }
-
-                return instance;
+                    throw new ApplicationException("Something went wrong while initializing the settings.");
             }
+
+            return instance;
         }
-
-        public string WebApiUrl { get; set; }
-
-        public string SqliteConnectionString { get; set; }
     }
+
+    public string WebApiUrl { get; set; }
+
+    public string SqliteConnectionString { get; set; }
 }
 ```
 
@@ -254,23 +249,22 @@ Create a base class for all the integration tests, which is responsible for init
 using com.fabioscagliola.IntegrationTesting.WebApi;
 using NUnit.Framework;
 
-namespace com.fabioscagliola.IntegrationTesting.WebApiTest
+namespace com.fabioscagliola.IntegrationTesting.WebApiTest;
+
+public abstract class BaseTest
 {
-    public abstract class BaseTest
+    protected WebApiTestWebApplicationFactory<Program> WebApiTestWebApplicationFactory;
+
+    [SetUp]
+    public void Setup()
     {
-        protected WebApiTestWebApplicationFactory<Program> WebApiTestWebApplicationFactory;
+        WebApiTestWebApplicationFactory = new WebApiTestWebApplicationFactory<Program>();
+    }
 
-        [SetUp]
-        public void Setup()
-        {
-            WebApiTestWebApplicationFactory = new WebApiTestWebApplicationFactory<Program>();
-        }
-
-        [TearDown]
-        public void TearDown()
-        {
-            WebApiTestWebApplicationFactory.Dispose();
-        }
+    [TearDown]
+    public void TearDown()
+    {
+        WebApiTestWebApplicationFactory.Dispose();
     }
 }
 ```
@@ -284,8 +278,8 @@ First, consider the following web API method, responsible for creating a new per
 ```csharp
 [HttpPost]
 [Route("[action]")]
-[SwaggerResponse(200, Type = typeof(Person))]
-[SwaggerResponse(400)]
+[SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Person))]
+[SwaggerResponse(StatusCodes.Status400BadRequest)]
 public async Task<IActionResult> Create(PersonCreateData personCreateData)
 {
     if (string.IsNullOrEmpty(personCreateData.FName) || string.IsNullOrEmpty(personCreateData.LName))
@@ -350,8 +344,8 @@ Second, consider the following web API method, responsible for retrieving an exi
 ```csharp
 [HttpGet]
 [Route("[action]/{id}")]
-[SwaggerResponse(200, Type = typeof(Person))]
-[SwaggerResponse(400)]
+[SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Person))]
+[SwaggerResponse(StatusCodes.Status400BadRequest)]
 public async Task<IActionResult> Read(int id)
 {
     Person? person = await dbContext.People.SingleOrDefaultAsync(x => x.Id == id);
@@ -413,7 +407,7 @@ Third, consider the following web API method, responsible for retrieving the lis
 ```csharp
 [HttpGet]
 [Route("[action]")]
-[SwaggerResponse(200, Type = typeof(List<Person>))]
+[SwaggerResponse(StatusCodes.Status200OK, Type = typeof(List<Person>))]
 public async Task<IActionResult> ReadList()
 {
     List<Person> people = await dbContext.People.ToListAsync();
@@ -448,8 +442,8 @@ Fourth, consider the following web API method, responsible for updating an exist
 ```csharp
 [HttpPost]
 [Route("[action]")]
-[SwaggerResponse(200, Type = typeof(Person))]
-[SwaggerResponse(400)]
+[SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Person))]
+[SwaggerResponse(StatusCodes.Status400BadRequest)]
 public async Task<IActionResult> Update(Person person)
 {
     Person? existing = await dbContext.People.SingleOrDefaultAsync(x => x.Id == person.Id);
@@ -522,10 +516,10 @@ public async Task Person_Update_Succeeds()
 Last, consider the following web API method, responsible for deleting an existing person record.
 
 ```csharp
-[HttpGet]
+[HttpDelete]
 [Route("[action]/{id}")]
-[SwaggerResponse(200, "Deletes a person.")]
-[SwaggerResponse(400)]
+[SwaggerResponse(StatusCodes.Status200OK)]
+[SwaggerResponse(StatusCodes.Status400BadRequest)]
 public async Task<IActionResult> Delete(int id)
 {
     Person? person = await dbContext.People.SingleOrDefaultAsync(x => x.Id == id);
@@ -544,7 +538,7 @@ The following test ensures that the web API method returns a bad request error i
 public async Task Person_Delete_ReturnsBadRequest()
 {
     HttpClient httpClient = WebApiTestWebApplicationFactory.CreateClient();
-    HttpResponseMessage httpResponseMessage = await httpClient.GetAsync($"{Settings.Instance.WebApiUrl}/Person/Delete/0");
+    HttpResponseMessage httpResponseMessage = await httpClient.DeleteAsync($"{Settings.Instance.WebApiUrl}/Person/Delete/0");
     Assert.That(httpResponseMessage.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
     string notfound = await httpResponseMessage.Content.ReadAsStringAsync();
     Assert.That(notfound, Is.Not.Null);
@@ -564,7 +558,7 @@ public async Task Person_Delete_Succeeds()
 
     {
         Assert.That(expected, Is.Not.Null);
-        HttpResponseMessage httpResponseMessage = await httpClient.GetAsync($"{Settings.Instance.WebApiUrl}/Person/Delete/{expected.Id}");
+        HttpResponseMessage httpResponseMessage = await httpClient.DeleteAsync($"{Settings.Instance.WebApiUrl}/Person/Delete/{expected.Id}");
         httpResponseMessage.EnsureSuccessStatusCode();
     }
 

@@ -1,22 +1,21 @@
 using com.fabioscagliola.IntegrationTesting.WebApi;
 using NUnit.Framework;
 
-namespace com.fabioscagliola.IntegrationTesting.WebApiTest
+namespace com.fabioscagliola.IntegrationTesting.WebApiTest;
+
+public abstract class BaseTest
 {
-    public abstract class BaseTest
+    protected WebApiTestWebApplicationFactory<Program> WebApiTestWebApplicationFactory;
+
+    [SetUp]
+    public void Setup()
     {
-        protected WebApiTestWebApplicationFactory<Program> WebApiTestWebApplicationFactory;
+        WebApiTestWebApplicationFactory = new WebApiTestWebApplicationFactory<Program>();
+    }
 
-        [SetUp]
-        public void Setup()
-        {
-            WebApiTestWebApplicationFactory = new WebApiTestWebApplicationFactory<Program>();
-        }
-
-        [TearDown]
-        public void TearDown()
-        {
-            WebApiTestWebApplicationFactory.Dispose();
-        }
+    [TearDown]
+    public void TearDown()
+    {
+        WebApiTestWebApplicationFactory.Dispose();
     }
 }
