@@ -4,15 +4,21 @@
 		<TargetFramework>net7.0</TargetFramework>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<Nullable>enable</Nullable>
+		<RootNamespace>com.fabioscagliola.IntegrationTesting.$(MSBuildProjectName.Replace(" ", "_"))</RootNamespace>
+		<GenerateDocumentationFile>True</GenerateDocumentationFile>
+		<NoWarn>$(NoWarn);1591</NoWarn>
+		<Title>ASP.NET Core Integration Testing</Title>
+		<Authors>Fabio Scagliola</Authors>
+		<Copyright>Fabio Scagliola 2022</Copyright>
+		<Product>ASP.NET Core Integration Testing</Product>
+		<Description>This solution demonstrates how to implement integration testing of an ASP.NET Core web API that uses EF Core and Migrations with Microsoft SQL Server, mocking the database context in order to use an SQLite in-memory database.</Description>
+		<AssemblyVersion>1.0</AssemblyVersion>
+		<FileVersion>$(AssemblyVersion)</FileVersion>
+		<Version>$(AssemblyVersion)</Version>
 
 		<IsPackable>false</IsPackable>
 
-		<RootNamespace>com.fabioscagliola.IntegrationTesting.$(MSBuildProjectName.Replace(" ", "_"))</RootNamespace>
 	</PropertyGroup>
-
-	<ItemGroup>
-		<None Remove="appsettings.json" />
-	</ItemGroup>
 
 	<ItemGroup>
 		<Content Include="appsettings.json">
@@ -50,11 +56,5 @@
 	<ItemGroup>
 		<None Include="..\..\.editorconfig" Link=".editorconfig" />
 	</ItemGroup>
-
-	<ProjectExtensions>
-		<VisualStudio>
-			<UserProperties appsettings_1json__JsonSchema="" />
-		</VisualStudio>
-	</ProjectExtensions>
 
 </Project>

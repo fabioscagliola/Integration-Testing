@@ -15,15 +15,24 @@ public class PersonControllerTest : BaseTest
     const string LNAME = "Scagliola";
 
     [Test]
-    public async Task GivenFNameOrLNameAreNullOrEmpty_WhenCreatingPerson_ThenReturnsBadRequest()
+    [TestCase(" ", " ")]
+    [TestCase(" ", "")]
+    [TestCase(" ", null)]
+    [TestCase("", " ")]
+    [TestCase("", "")]
+    [TestCase("", null)]
+    [TestCase(null, " ")]
+    [TestCase(null, "")]
+    [TestCase(null, null)]
+    public async Task GivenFNameOrLNameAreNullOrEmpty_WhenCreatingPerson_ThenReturnsBadRequest(string fName, string lName)
     {
         HttpClient httpClient = WebApiTestWebApplicationFactory.CreateClient();
-        PersonCreateData personCreateData = new() { FName = null, LName = "" };
+        PersonCreateData personCreateData = new() { FName = fName, LName = lName };
         HttpResponseMessage httpResponseMessage = await httpClient.PostAsync($"{Settings.Instance.WebApiUrl}/Person/Create", JsonContent.Create(personCreateData));
         httpResponseMessage.StatusCode.Should().Be(HttpStatusCode.BadRequest);
         string fNameOrLNameAreNullOrEmpty = await httpResponseMessage.Content.ReadAsStringAsync();
         fNameOrLNameAreNullOrEmpty.Should().NotBeNull();
-        fNameOrLNameAreNullOrEmpty.Should().Be(PersonController.FNAMEORLNAMEARENULLOREMPTY);
+        fNameOrLNameAreNullOrEmpty.Should().Be($"{WebApi.Properties.Resources.PersonValidationFNameIsEmpty}\r\n{WebApi.Properties.Resources.PersonValidationLNameIsEmpty}");
     }
 
     [Test]
@@ -44,7 +53,7 @@ public class PersonControllerTest : BaseTest
         httpResponseMessage.StatusCode.Should().Be(HttpStatusCode.BadRequest);
         string notfound = await httpResponseMessage.Content.ReadAsStringAsync();
         notfound.Should().NotBeNull();
-        notfound.Should().Be(PersonController.NOTFOUND);
+        notfound.Should().Be(WebApi.Properties.Resources.PersonNotFound);
     }
 
     [Test]
@@ -85,22 +94,31 @@ public class PersonControllerTest : BaseTest
         httpResponseMessage.StatusCode.Should().Be(HttpStatusCode.BadRequest);
         string notfound = await httpResponseMessage.Content.ReadAsStringAsync();
         notfound.Should().NotBeNull();
-        notfound.Should().Be(PersonController.NOTFOUND);
+        notfound.Should().Be(WebApi.Properties.Resources.PersonNotFound);
     }
 
     [Test]
-    public async Task GivenFNameOrLNameAreNullOrEmpty_WhenUpdatingPerson_ThenReturnsBadRequest()
+    [TestCase(" ", " ")]
+    [TestCase(" ", "")]
+    [TestCase(" ", null)]
+    [TestCase("", " ")]
+    [TestCase("", "")]
+    [TestCase("", null)]
+    [TestCase(null, " ")]
+    [TestCase(null, "")]
+    [TestCase(null, null)]
+    public async Task GivenFNameOrLNameAreNullOrEmpty_WhenUpdatingPerson_ThenReturnsBadRequest(string fName, string lName)
     {
         Person temp = await CreatePerson(FNAME, LNAME);
         temp.Should().NotBeNull();
 
         HttpClient httpClient = WebApiTestWebApplicationFactory.CreateClient();
-        Person expected = new() { Id = temp.Id, FName = null, LName = "" };
+        Person expected = new() { Id = temp.Id, FName = fName, LName = lName };
         HttpResponseMessage httpResponseMessage = await httpClient.PostAsync($"{Settings.Instance.WebApiUrl}/Person/Update", JsonContent.Create(expected));
         httpResponseMessage.StatusCode.Should().Be(HttpStatusCode.BadRequest);
         string fNameOrLNameAreNullOrEmpty = await httpResponseMessage.Content.ReadAsStringAsync();
         fNameOrLNameAreNullOrEmpty.Should().NotBeNull();
-        fNameOrLNameAreNullOrEmpty.Should().Be(PersonController.FNAMEORLNAMEARENULLOREMPTY);
+        fNameOrLNameAreNullOrEmpty.Should().Be($"{WebApi.Properties.Resources.PersonValidationFNameIsEmpty}\r\n{WebApi.Properties.Resources.PersonValidationLNameIsEmpty}");
     }
 
     [Test]
@@ -125,7 +143,7 @@ public class PersonControllerTest : BaseTest
         httpResponseMessage.StatusCode.Should().Be(HttpStatusCode.BadRequest);
         string notfound = await httpResponseMessage.Content.ReadAsStringAsync();
         notfound.Should().NotBeNull();
-        notfound.Should().Be(PersonController.NOTFOUND);
+        notfound.Should().Be(WebApi.Properties.Resources.PersonNotFound);
     }
 
     [Test]
@@ -146,7 +164,7 @@ public class PersonControllerTest : BaseTest
             httpResponseMessage.StatusCode.Should().Be(HttpStatusCode.BadRequest);
             string notfound = await httpResponseMessage.Content.ReadAsStringAsync();
             notfound.Should().NotBeNull();
-            notfound.Should().Be(PersonController.NOTFOUND);
+            notfound.Should().Be(WebApi.Properties.Resources.PersonNotFound);
         }
     }
 

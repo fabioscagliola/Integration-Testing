@@ -282,9 +282,11 @@ First, consider the following web API method, responsible for creating a new per
 [SwaggerResponse(StatusCodes.Status400BadRequest)]
 public async Task<IActionResult> Create(PersonCreateData personCreateData)
 {
-    if (string.IsNullOrEmpty(personCreateData.FName) || string.IsNullOrEmpty(personCreateData.LName))
-        return BadRequest(FNAMEORLNAMEARENULLOREMPTY);
     Person person = new() { FName = personCreateData.FName, LName = personCreateData.LName, };
+    PersonValidation personValidation = new();
+    ValidationResult validationResult = personValidation.Validate(person);
+    if (!validationResult.IsValid)
+        return BadRequest(validationResult.ToString());
     dbContext.People.Add(person);
     await dbContext.SaveChangesAsync();
     return Ok(person);
@@ -293,17 +295,28 @@ public async Task<IActionResult> Create(PersonCreateData personCreateData)
 
 The following test ensures that the web API method returns a bad request error if the first name or the last name are null or empty.
 
+Please note that the test are named according to the [Given-When-Then](https://en.wikipedia.org/wiki/Given-When-Then) convention.
+
 ```csharp
 [Test]
-public async Task Person_Create_WhenFNameOrLNameAreNullOrEmpty_ReturnsBadRequest()
+[TestCase(" ", " ")]
+[TestCase(" ", "")]
+[TestCase(" ", null)]
+[TestCase("", " ")]
+[TestCase("", "")]
+[TestCase("", null)]
+[TestCase(null, " ")]
+[TestCase(null, "")]
+[TestCase(null, null)]
+public async Task GivenFNameOrLNameAreNullOrEmpty_WhenCreatingPerson_ThenReturnsBadRequest(string fName, string lName)
 {
     HttpClient httpClient = WebApiTestWebApplicationFactory.CreateClient();
-    PersonCreateData personCreateData = new() { FName = null, LName = "" };
+    PersonCreateData personCreateData = new() { FName = fName, LName = lName };
     HttpResponseMessage httpResponseMessage = await httpClient.PostAsync($"{Settings.Instance.WebApiUrl}/Person/Create", JsonContent.Create(personCreateData));
     httpResponseMessage.StatusCode.Should().Be(HttpStatusCode.BadRequest);
     string fNameOrLNameAreNullOrEmpty = await httpResponseMessage.Content.ReadAsStringAsync();
     fNameOrLNameAreNullOrEmpty.Should().NotBeNull();
-    fNameOrLNameAreNullOrEmpty.Should().Be(PersonController.FNAMEORLNAMEARENULLOREMPTY);
+    fNameOrLNameAreNullOrEmpty.Should().Be($"{WebApi.Properties.Resources.PersonValidationFNameIsEmpty}\r\n{WebApi.Properties.Resources.PersonValidationLNameIsEmpty}");
 }
 ```
 
@@ -311,9 +324,9 @@ The following test ensures that the web API method succeeds.
 
 ```csharp
 [Test]
-public async Task Person_Create_Succeeds()
+public async Task GivenFNameAndLNameAreNotNullOrEmpty_WhenCreatingPerson_ThenSucceeds()
 {
-    Person? person = await CreatePerson(FNAME, LNAME);
+    Person person = await CreatePerson(FNAME, LNAME);
     person.Should().NotBeNull();
     person.Id.Should().NotBe(0);
     person.FName.Should().Be(FNAME);
@@ -324,7 +337,7 @@ public async Task Person_Create_Succeeds()
 I extracted the **CreatePerson** method because it is used in multiple tests.
 
 ```csharp
-async Task<Person?> CreatePerson(string fName, string lName)
+async Task<Person> CreatePerson(string fName, string lName)
 {
     HttpClient httpClient = WebApiTestWebApplicationFactory.CreateClient();
     PersonCreateData personCreateData = new() { FName = fName, LName = lName };
@@ -347,7 +360,7 @@ public async Task<IActionResult> Read(int id)
 {
     Person? person = await dbContext.People.SingleOrDefaultAsync(x => x.Id == id);
     if (person == null)
-        return BadRequest(NOTFOUND);
+        return BadRequest(Properties.Resources.PersonNotFound);
     return Ok(person);
 }
 ```
@@ -356,14 +369,14 @@ The following test ensures that the web API method returns a bad request error i
 
 ```csharp
 [Test]
-public async Task Person_Read_ReturnsBadRequest()
+public async Task GivenNonExistingId_WhenReadingPerson_ThenReturnsBadRequest()
 {
     HttpClient httpClient = WebApiTestWebApplicationFactory.CreateClient();
     HttpResponseMessage httpResponseMessage = await httpClient.GetAsync($"{Settings.Instance.WebApiUrl}/Person/Read/0");
     httpResponseMessage.StatusCode.Should().Be(HttpStatusCode.BadRequest);
     string notfound = await httpResponseMessage.Content.ReadAsStringAsync();
     notfound.Should().NotBeNull();
-    notfound.Should().Be(PersonController.NOTFOUND);
+    notfound.Should().Be(WebApi.Properties.Resources.PersonNotFound);
 }
 ```
 
@@ -371,15 +384,15 @@ And the following test ensures that the web API method succeeds.
 
 ```csharp
 [Test]
-public async Task Person_Read_Succeeds()
+public async Task GivenExistingId_WhenReadingPerson_ThenSucceeds()
 {
-    Person? expected = await CreatePerson(FNAME, LNAME);
+    Person expected = await CreatePerson(FNAME, LNAME);
     expected.Should().NotBeNull();
 
     HttpClient httpClient = WebApiTestWebApplicationFactory.CreateClient();
     HttpResponseMessage httpResponseMessage = await httpClient.GetAsync($"{Settings.Instance.WebApiUrl}/Person/Read/{expected.Id}");
     httpResponseMessage.EnsureSuccessStatusCode();
-    Person? actual = await httpResponseMessage.Content.ReadFromJsonAsync(typeof(Person)) as Person;
+    Person actual = await httpResponseMessage.Content.ReadFromJsonAsync(typeof(Person)) as Person;
     MakeAssertions(expected, actual);
 }
 ```
@@ -387,7 +400,7 @@ public async Task Person_Read_Succeeds()
 Once again, I extracted the **MakeAssertions** method because it is used in multiple tests.
 
 ```csharp
-static void MakeAssertions(Person? expected, Person? actual)
+static void MakeAssertions(Person expected, Person actual)
 {
     expected.Should().NotBeNull();
     actual.Should().NotBeNull();
@@ -416,18 +429,18 @@ The following test ensures that the web API method succeeds.
 
 ```csharp
 [Test]
-public async Task Person_ReadList_Succeeds()
+public async Task WhenReadingPersonList_ThenSucceeds()
 {
-    Person? expected = await CreatePerson(FNAME, LNAME);
+    Person expected = await CreatePerson(FNAME, LNAME);
     expected.Should().NotBeNull();
 
     HttpClient httpClient = WebApiTestWebApplicationFactory.CreateClient();
     HttpResponseMessage httpResponseMessage = await httpClient.GetAsync($"{Settings.Instance.WebApiUrl}/Person/ReadList");
     httpResponseMessage.EnsureSuccessStatusCode();
-    List<Person>? people = await httpResponseMessage.Content.ReadFromJsonAsync(typeof(List<Person>)) as List<Person>;
+    List<Person> people = await httpResponseMessage.Content.ReadFromJsonAsync(typeof(List<Person>)) as List<Person>;
     people.Should().NotBeNull();
     people.Should().NotBeEmpty();
-    Person? actual = people.SingleOrDefault(x => x.Id == expected.Id);
+    Person actual = people.SingleOrDefault(x => x.Id == expected.Id);
     MakeAssertions(expected, actual);
 }
 ```
@@ -445,9 +458,11 @@ public async Task<IActionResult> Update(Person person)
 {
     Person? existing = await dbContext.People.SingleOrDefaultAsync(x => x.Id == person.Id);
     if (existing == null)
-        return BadRequest(NOTFOUND);
-    if (string.IsNullOrEmpty(person.FName) || string.IsNullOrEmpty(person.LName))
-        return BadRequest(FNAMEORLNAMEARENULLOREMPTY);
+        return BadRequest(Properties.Resources.PersonNotFound);
+    PersonValidation personValidation = new();
+    ValidationResult validationResult = personValidation.Validate(person);
+    if (!validationResult.IsValid)
+        return BadRequest(validationResult.ToString());
     existing.FName = person.FName;
     existing.LName = person.LName;
     await dbContext.SaveChangesAsync();
@@ -459,7 +474,7 @@ The following test ensures that the web API method returns a bad request error i
 
 ```csharp
 [Test]
-public async Task Person_Update_WhenNotFound_ReturnsBadRequest()
+public async Task GivenNonExistingPerson_WhenUpdatingPerson_ThenReturnsBadRequest()
 {
     HttpClient httpClient = WebApiTestWebApplicationFactory.CreateClient();
     Person expected = new();
@@ -467,7 +482,7 @@ public async Task Person_Update_WhenNotFound_ReturnsBadRequest()
     httpResponseMessage.StatusCode.Should().Be(HttpStatusCode.BadRequest);
     string notfound = await httpResponseMessage.Content.ReadAsStringAsync();
     notfound.Should().NotBeNull();
-    notfound.Should().Be(PersonController.NOTFOUND);
+    notfound.Should().Be(WebApi.Properties.Resources.PersonNotFound);
 }
 ```
 
@@ -475,18 +490,27 @@ The following test ensures that the web API method returns a bad request error i
 
 ```csharp
 [Test]
-public async Task Person_Update_WhenFNameOrLNameAreNullOrEmpty_ReturnsBadRequest()
+[TestCase(" ", " ")]
+[TestCase(" ", "")]
+[TestCase(" ", null)]
+[TestCase("", " ")]
+[TestCase("", "")]
+[TestCase("", null)]
+[TestCase(null, " ")]
+[TestCase(null, "")]
+[TestCase(null, null)]
+public async Task GivenFNameOrLNameAreNullOrEmpty_WhenUpdatingPerson_ThenReturnsBadRequest(string fName, string lName)
 {
-    Person? temp = await CreatePerson(FNAME, LNAME);
+    Person temp = await CreatePerson(FNAME, LNAME);
     temp.Should().NotBeNull();
 
     HttpClient httpClient = WebApiTestWebApplicationFactory.CreateClient();
-    Person expected = new() { Id = temp.Id, FName = null, LName = "" };
+    Person expected = new() { Id = temp.Id, FName = fName, LName = lName };
     HttpResponseMessage httpResponseMessage = await httpClient.PostAsync($"{Settings.Instance.WebApiUrl}/Person/Update", JsonContent.Create(expected));
     httpResponseMessage.StatusCode.Should().Be(HttpStatusCode.BadRequest);
     string fNameOrLNameAreNullOrEmpty = await httpResponseMessage.Content.ReadAsStringAsync();
     fNameOrLNameAreNullOrEmpty.Should().NotBeNull();
-    fNameOrLNameAreNullOrEmpty.Should().Be(PersonController.FNAMEORLNAMEARENULLOREMPTY);
+    fNameOrLNameAreNullOrEmpty.Should().Be($"{WebApi.Properties.Resources.PersonValidationFNameIsEmpty}\r\n{WebApi.Properties.Resources.PersonValidationLNameIsEmpty}");
 }
 ```
 
@@ -494,16 +518,16 @@ And the following test ensures that the web API method succeeds.
 
 ```csharp
 [Test]
-public async Task Person_Update_Succeeds()
+public async Task GivenFNameAndLNameAreNotNullOrEmpty_WhenUpdatingPerson_ThenSucceeds()
 {
-    Person? temp = await CreatePerson(FNAME, LNAME);
+    Person temp = await CreatePerson(FNAME, LNAME);
     temp.Should().NotBeNull();
 
     HttpClient httpClient = WebApiTestWebApplicationFactory.CreateClient();
     Person expected = new() { Id = temp.Id, FName = "Laura", LName = "Bernasconi" };
     HttpResponseMessage httpResponseMessage = await httpClient.PostAsync($"{Settings.Instance.WebApiUrl}/Person/Update", JsonContent.Create(expected));
     httpResponseMessage.EnsureSuccessStatusCode();
-    Person? actual = await httpResponseMessage.Content.ReadFromJsonAsync(typeof(Person)) as Person;
+    Person actual = await httpResponseMessage.Content.ReadFromJsonAsync(typeof(Person)) as Person;
     MakeAssertions(expected, actual);
 }
 ```
@@ -521,7 +545,7 @@ public async Task<IActionResult> Delete(int id)
 {
     Person? person = await dbContext.People.SingleOrDefaultAsync(x => x.Id == id);
     if (person == null)
-        return BadRequest(NOTFOUND);
+        return BadRequest(Properties.Resources.PersonNotFound);
     dbContext.People.Remove(person);
     await dbContext.SaveChangesAsync();
     return Ok();
@@ -532,14 +556,14 @@ The following test ensures that the web API method returns a bad request error i
 
 ```csharp
 [Test]
-public async Task Person_Delete_ReturnsBadRequest()
+public async Task GivenNonExistingId_WhenDeletingPerson_ThenReturnsBadRequest()
 {
     HttpClient httpClient = WebApiTestWebApplicationFactory.CreateClient();
     HttpResponseMessage httpResponseMessage = await httpClient.DeleteAsync($"{Settings.Instance.WebApiUrl}/Person/Delete/0");
     httpResponseMessage.StatusCode.Should().Be(HttpStatusCode.BadRequest);
     string notfound = await httpResponseMessage.Content.ReadAsStringAsync();
     notfound.Should().NotBeNull();
-    notfound.Should().Be(PersonController.NOTFOUND);
+    notfound.Should().Be(WebApi.Properties.Resources.PersonNotFound);
 }
 ```
 
@@ -547,9 +571,9 @@ And the following test ensures that the web API method succeeds.
 
 ```csharp
 [Test]
-public async Task Person_Delete_Succeeds()
+public async Task GivenExistingId_WhenDeletingPerson_ThenSucceeds()
 {
-    Person? expected = await CreatePerson(FNAME, LNAME);
+    Person expected = await CreatePerson(FNAME, LNAME);
 
     HttpClient httpClient = WebApiTestWebApplicationFactory.CreateClient();
 
@@ -564,7 +588,7 @@ public async Task Person_Delete_Succeeds()
         httpResponseMessage.StatusCode.Should().Be(HttpStatusCode.BadRequest);
         string notfound = await httpResponseMessage.Content.ReadAsStringAsync();
         notfound.Should().NotBeNull();
-        notfound.Should().Be(PersonController.NOTFOUND);
+        notfound.Should().Be(WebApi.Properties.Resources.PersonNotFound);
     }
 }
 ```

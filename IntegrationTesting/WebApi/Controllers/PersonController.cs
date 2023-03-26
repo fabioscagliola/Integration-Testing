@@ -1,3 +1,4 @@
+using FluentValidation.Results;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Swashbuckle.AspNetCore.Annotations;
@@ -8,9 +9,6 @@ namespace com.fabioscagliola.IntegrationTesting.WebApi.Controllers;
 [Route("[controller]")]
 public class PersonController : ControllerBase
 {
-    public const string FNAMEORLNAMEARENULLOREMPTY = "You must indicate the first name and the last name!";
-    public const string NOTFOUND = "A person with the specified identifier could not be found!";
-
     readonly WebApiDbContext dbContext;
 
     public PersonController(WebApiDbContext dbContext)
@@ -27,9 +25,11 @@ public class PersonController : ControllerBase
     [SwaggerResponse(StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> Create(PersonCreateData personCreateData)
     {
-        if (string.IsNullOrEmpty(personCreateData.FName) || string.IsNullOrEmpty(personCreateData.LName))
-            return BadRequest(FNAMEORLNAMEARENULLOREMPTY);
         Person person = new() { FName = personCreateData.FName, LName = personCreateData.LName, };
+        PersonValidation personValidation = new();
+        ValidationResult validationResult = personValidation.Validate(person);
+        if (!validationResult.IsValid)
+            return BadRequest(validationResult.ToString());
         dbContext.People.Add(person);
         await dbContext.SaveChangesAsync();
         return Ok(person);
@@ -46,7 +46,7 @@ public class PersonController : ControllerBase
     {
         Person? person = await dbContext.People.SingleOrDefaultAsync(x => x.Id == id);
         if (person == null)
-            return BadRequest(NOTFOUND);
+            return BadRequest(Properties.Resources.PersonNotFound);
         return Ok(person);
     }
 
@@ -73,9 +73,11 @@ public class PersonController : ControllerBase
     {
         Person? existing = await dbContext.People.SingleOrDefaultAsync(x => x.Id == person.Id);
         if (existing == null)
-            return BadRequest(NOTFOUND);
-        if (string.IsNullOrEmpty(person.FName) || string.IsNullOrEmpty(person.LName))
-            return BadRequest(FNAMEORLNAMEARENULLOREMPTY);
+            return BadRequest(Properties.Resources.PersonNotFound);
+        PersonValidation personValidation = new();
+        ValidationResult validationResult = personValidation.Validate(person);
+        if (!validationResult.IsValid)
+            return BadRequest(validationResult.ToString());
         existing.FName = person.FName;
         existing.LName = person.LName;
         await dbContext.SaveChangesAsync();
@@ -93,7 +95,7 @@ public class PersonController : ControllerBase
     {
         Person? person = await dbContext.People.SingleOrDefaultAsync(x => x.Id == id);
         if (person == null)
-            return BadRequest(NOTFOUND);
+            return BadRequest(Properties.Resources.PersonNotFound);
         dbContext.People.Remove(person);
         await dbContext.SaveChangesAsync();
         return Ok();
