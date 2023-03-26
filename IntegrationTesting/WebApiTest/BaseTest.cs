@@ -10,7 +10,7 @@ public abstract class BaseTest
     [SetUp]
     public void Setup()
     {
-        WebApiTestWebApplicationFactory = new WebApiTestWebApplicationFactory<Program>();
+        WebApiTestWebApplicationFactory = new();
     }
 
     [TearDown]

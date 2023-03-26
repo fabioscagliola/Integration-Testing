@@ -5,6 +5,8 @@ using NUnit.Framework;
 using System.Net;
 using System.Net.Http.Json;
 
+#nullable disable
+
 namespace com.fabioscagliola.IntegrationTesting.WebApiTest;
 
 public class PersonControllerTest : BaseTest
@@ -13,7 +15,7 @@ public class PersonControllerTest : BaseTest
     const string LNAME = "Scagliola";
 
     [Test]
-    public async Task Person_Create_WhenFNameOrLNameAreNullOrEmpty_ReturnsBadRequest()
+    public async Task GivenFNameOrLNameAreNullOrEmpty_WhenCreatingPerson_ThenReturnsBadRequest()
     {
         HttpClient httpClient = WebApiTestWebApplicationFactory.CreateClient();
         PersonCreateData personCreateData = new() { FName = null, LName = "" };
@@ -25,9 +27,9 @@ public class PersonControllerTest : BaseTest
     }
 
     [Test]
-    public async Task Person_Create_Succeeds()
+    public async Task GivenFNameAndLNameAreNotNullOrEmpty_WhenCreatingPerson_ThenSucceeds()
     {
-        Person? person = await CreatePerson(FNAME, LNAME);
+        Person person = await CreatePerson(FNAME, LNAME);
         person.Should().NotBeNull();
         person.Id.Should().NotBe(0);
         person.FName.Should().Be(FNAME);
@@ -35,7 +37,7 @@ public class PersonControllerTest : BaseTest
     }
 
     [Test]
-    public async Task Person_Read_ReturnsBadRequest()
+    public async Task GivenNonExistingId_WhenReadingPerson_ThenReturnsBadRequest()
     {
         HttpClient httpClient = WebApiTestWebApplicationFactory.CreateClient();
         HttpResponseMessage httpResponseMessage = await httpClient.GetAsync($"{Settings.Instance.WebApiUrl}/Person/Read/0");
@@ -46,36 +48,36 @@ public class PersonControllerTest : BaseTest
     }
 
     [Test]
-    public async Task Person_Read_Succeeds()
+    public async Task GivenExistingId_WhenReadingPerson_ThenSucceeds()
     {
-        Person? expected = await CreatePerson(FNAME, LNAME);
+        Person expected = await CreatePerson(FNAME, LNAME);
         expected.Should().NotBeNull();
 
         HttpClient httpClient = WebApiTestWebApplicationFactory.CreateClient();
         HttpResponseMessage httpResponseMessage = await httpClient.GetAsync($"{Settings.Instance.WebApiUrl}/Person/Read/{expected.Id}");
         httpResponseMessage.EnsureSuccessStatusCode();
-        Person? actual = await httpResponseMessage.Content.ReadFromJsonAsync(typeof(Person)) as Person;
+        Person actual = await httpResponseMessage.Content.ReadFromJsonAsync(typeof(Person)) as Person;
         MakeAssertions(expected, actual);
     }
 
     [Test]
-    public async Task Person_ReadList_Succeeds()
+    public async Task WhenReadingPersonList_ThenSucceeds()
     {
-        Person? expected = await CreatePerson(FNAME, LNAME);
+        Person expected = await CreatePerson(FNAME, LNAME);
         expected.Should().NotBeNull();
 
         HttpClient httpClient = WebApiTestWebApplicationFactory.CreateClient();
         HttpResponseMessage httpResponseMessage = await httpClient.GetAsync($"{Settings.Instance.WebApiUrl}/Person/ReadList");
         httpResponseMessage.EnsureSuccessStatusCode();
-        List<Person>? people = await httpResponseMessage.Content.ReadFromJsonAsync(typeof(List<Person>)) as List<Person>;
+        List<Person> people = await httpResponseMessage.Content.ReadFromJsonAsync(typeof(List<Person>)) as List<Person>;
         people.Should().NotBeNull();
         people.Should().NotBeEmpty();
-        Person? actual = people.SingleOrDefault(x => x.Id == expected.Id);
+        Person actual = people.SingleOrDefault(x => x.Id == expected.Id);
         MakeAssertions(expected, actual);
     }
 
     [Test]
-    public async Task Person_Update_WhenNotFound_ReturnsBadRequest()
+    public async Task GivenNonExistingPerson_WhenUpdatingPerson_ThenReturnsBadRequest()
     {
         HttpClient httpClient = WebApiTestWebApplicationFactory.CreateClient();
         Person expected = new();
@@ -87,9 +89,9 @@ public class PersonControllerTest : BaseTest
     }
 
     [Test]
-    public async Task Person_Update_WhenFNameOrLNameAreNullOrEmpty_ReturnsBadRequest()
+    public async Task GivenFNameOrLNameAreNullOrEmpty_WhenUpdatingPerson_ThenReturnsBadRequest()
     {
-        Person? temp = await CreatePerson(FNAME, LNAME);
+        Person temp = await CreatePerson(FNAME, LNAME);
         temp.Should().NotBeNull();
 
         HttpClient httpClient = WebApiTestWebApplicationFactory.CreateClient();
@@ -102,21 +104,21 @@ public class PersonControllerTest : BaseTest
     }
 
     [Test]
-    public async Task Person_Update_Succeeds()
+    public async Task GivenFNameAndLNameAreNotNullOrEmpty_WhenUpdatingPerson_ThenSucceeds()
     {
-        Person? temp = await CreatePerson(FNAME, LNAME);
+        Person temp = await CreatePerson(FNAME, LNAME);
         temp.Should().NotBeNull();
 
         HttpClient httpClient = WebApiTestWebApplicationFactory.CreateClient();
         Person expected = new() { Id = temp.Id, FName = "Laura", LName = "Bernasconi" };
         HttpResponseMessage httpResponseMessage = await httpClient.PostAsync($"{Settings.Instance.WebApiUrl}/Person/Update", JsonContent.Create(expected));
         httpResponseMessage.EnsureSuccessStatusCode();
-        Person? actual = await httpResponseMessage.Content.ReadFromJsonAsync(typeof(Person)) as Person;
+        Person actual = await httpResponseMessage.Content.ReadFromJsonAsync(typeof(Person)) as Person;
         MakeAssertions(expected, actual);
     }
 
     [Test]
-    public async Task Person_Delete_ReturnsBadRequest()
+    public async Task GivenNonExistingId_WhenDeletingPerson_ThenReturnsBadRequest()
     {
         HttpClient httpClient = WebApiTestWebApplicationFactory.CreateClient();
         HttpResponseMessage httpResponseMessage = await httpClient.DeleteAsync($"{Settings.Instance.WebApiUrl}/Person/Delete/0");
@@ -127,9 +129,9 @@ public class PersonControllerTest : BaseTest
     }
 
     [Test]
-    public async Task Person_Delete_Succeeds()
+    public async Task GivenExistingId_WhenDeletingPerson_ThenSucceeds()
     {
-        Person? expected = await CreatePerson(FNAME, LNAME);
+        Person expected = await CreatePerson(FNAME, LNAME);
 
         HttpClient httpClient = WebApiTestWebApplicationFactory.CreateClient();
 
@@ -148,7 +150,7 @@ public class PersonControllerTest : BaseTest
         }
     }
 
-    async Task<Person?> CreatePerson(string fName, string lName)
+    async Task<Person> CreatePerson(string fName, string lName)
     {
         HttpClient httpClient = WebApiTestWebApplicationFactory.CreateClient();
         PersonCreateData personCreateData = new() { FName = fName, LName = lName };
@@ -157,7 +159,7 @@ public class PersonControllerTest : BaseTest
         return await httpResponseMessage.Content.ReadFromJsonAsync(typeof(Person)) as Person;
     }
 
-    static void MakeAssertions(Person? expected, Person? actual)
+    static void MakeAssertions(Person expected, Person actual)
     {
         expected.Should().NotBeNull();
         actual.Should().NotBeNull();
