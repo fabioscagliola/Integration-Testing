@@ -9,7 +9,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace com.fabioscagliola.IntegrationTesting.WebApiTest.Migrations
 {
     [DbContext(typeof(WebApiDbContext))]
-    [Migration("Migration001")]
+    [Migration("00000000000000_Migration001")]
     partial class Migration001
     {
         /// <inheritdoc />
